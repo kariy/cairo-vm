@@ -230,6 +230,24 @@ impl Memory {
         self.validate_memory_cell(key)
     }
 
+    pub fn clear_cell(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
+        let (i, j) = from_relocatable_to_indexes(addr);
+        let data = if addr.segment_index < 0 {
+            &mut self.temp_data
+        } else {
+            &mut self.data
+        };
+
+        if let Some(segment) = data.get_mut(i) {
+            if j < segment.len() {
+                segment[j] = MemoryCell::NONE;
+                return Ok(());
+            }
+        }
+
+        Err(MemoryError::UnallocatedSegment(Box::new((i, data.len()))))
+    }
+
     /// Retrieve a value from memory (either normal or temporary) and apply relocation rules
     pub(crate) fn get<'a, 'b: 'a, K: 'a>(&'b self, key: &'a K) -> Option<Cow<'b, MaybeRelocatable>>
     where
